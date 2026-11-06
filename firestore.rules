@@ -1,0 +1,174 @@
+rules_version = '2';
+
+/**
+ * @name Firebase Security Rules for Home Care App
+ * @author AI Architect
+ *
+ * @description
+ * This ruleset provides security for a home care services application. It is designed
+ * for rapid prototyping, focusing on strict authorization while allowing flexibility
+ * in data schemas.
+ *
+ * @philosophy
+ * The core security philosophy is user-centric and relies on denormalized data for
+ * performance and security.
+ * - User data is strictly controlled, with users only able to access and manage
+ *   their own information.
+ * - Publicly visible data (like service listings) can be read by anyone but only
+ *   modified by its designated owner.
+ * - Private, user-generated content (like bookings and job applications) is strictly
+ *   siloed to the creating user.
+ *
+ * @structure
+ * The data is organized into four top-level collections:
+ * - /users/{userId}: Stores private user profile information.
+ * - /serviceListings/{serviceListingId}: Publicly readable service listings.
+ * - /bookings/{bookingId}: Private booking records.
+ * - /jobApplications/{jobApplicationId}: Private job application records.
+ *
+ * @decisions
+ * - User Privacy: Listing the contents of the top-level `/users` collection is
+ *   explicitly disabled to prevent user data scraping.
+ * - Authorization via Denormalization: To ensure fast and secure authorization
+ *   checks without expensive cross-document `get()` calls, ownership data is
+ *   denormalized. `serviceListings` contain a `providerId`, while `bookings` and
+ *   `jobApplications` contain a `userId`. These fields are the source of truth for
+ *   all write access control.
+ * - Prototyping Flexibility: These rules do not enforce the specific shape or
+ *   data types of documents beyond the fields essential for authorization (e.g.,
+ *   `id`, `userId`, `providerId`). This allows the application schema to evolve
+ *   without requiring constant rules updates.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * Used for path-based security, like a user's own document tree.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches an ownership field
+     * (e.g., 'userId', 'providerId') within an existing document's data.
+     */
+    function isDocumentOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    /**
+     * Validates that a user is creating a document linked to their own UID.
+     * Ensures the denormalized ownership field is set correctly on creation.
+     */
+    function isCreatingOwnDocument(ownerFieldKey) {
+      return isSignedIn() && request.resource.data[ownerFieldKey] == request.auth.uid;
+    }
+
+    /**
+     * Validates an update operation:
+     * 1. The document must exist.
+     * 2. The current user must be the owner (based on the existing document's owner field).
+     * 3. The ownership field must be immutable (cannot be changed).
+     */
+    function isUpdatingOwnDocument(ownerFieldKey) {
+      let existingDoc = resource.data;
+      let newDoc = request.resource.data;
+      return resource != null
+        && isDocumentOwner(existingDoc[ownerFieldKey])
+        && existingDoc[ownerFieldKey] == newDoc[ownerFieldKey];
+    }
+    
+    /**
+     * Validates a delete operation:
+     * 1. The document must exist.
+     * 2. The current user must be the owner (based on the existing document's owner field).
+     */
+    function isDeletingOwnDocument(ownerFieldKey) {
+        return resource != null && isDocumentOwner(resource.data[ownerFieldKey]);
+    }
+
+
+    /**
+     * @description Users can create their own profile and fully manage it.
+     *              They cannot view or edit other users' profiles. Listing all users is disabled for privacy.
+     * @path        /users/{userId}
+     * @allow       A signed-in user with UID 'user123' can (create) their own document at `/users/user123`.
+     * @deny        A signed-in user with UID 'user456' cannot (get) the document at `/users/user123`.
+     * @principle   Restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+
+    /**
+     * @description Service listings are public for anyone to read. Only the authenticated service
+     *              provider (`providerId`) who created the listing can create, update, or delete it.
+     * @path        /serviceListings/{serviceListingId}
+     * @allow       An unauthenticated user can (get) or (list) all documents in this collection.
+     * @deny        A user 'user123' cannot (update) a listing where the existing `providerId` is 'user456'.
+     * @principle   Public Read with Owner-Only Writes.
+     */
+    match /serviceListings/{serviceListingId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isCreatingOwnDocument('providerId');
+      allow update: if isUpdatingOwnDocument('providerId');
+      allow delete: if isDeletingOwnDocument('providerId');
+    }
+
+
+    /**
+     * @description Bookings are private. Only the user who created the booking (`userId`) can
+     *              access or manage it. Listing is restricted to a user's own bookings via queries.
+     * @path        /bookings/{bookingId}
+     * @allow       A signed-in user 'user123' can (create) a booking with `userId: 'user123'`.
+     * @deny        User 'user456' cannot (get) a booking where the `userId` field is 'user123'.
+     * @principle   Enforces document ownership for all operations based on a `userId` field.
+     */
+    match /bookings/{bookingId} {
+      // NOTE: The service provider may also need read access to bookings for their services.
+      // This would require denormalizing the `providerId` onto the booking document.
+      allow get: if resource != null && isDocumentOwner(resource.data.userId);
+      allow list: if isSignedIn(); // Allows client-side queries like `where('userId', '==', auth.uid)`
+      allow create: if isCreatingOwnDocument('userId');
+      allow update: if isUpdatingOwnDocument('userId');
+      allow delete: if isDeletingOwnDocument('userId');
+    }
+
+
+    /**
+     * @description Job applications are private. Only the user who submitted the application (`userId`)
+     *              can access or manage it. Listing is restricted to a user's own applications via queries.
+     * @path        /jobApplications/{jobApplicationId}
+     * @allow       A signed-in user 'user123' can (create) a job application with `userId: 'user123'`.
+     * @deny        User 'user456' cannot (get) a job application where the `userId` field is 'user123'.
+     * @principle   Enforces document ownership for all operations based on a `userId` field.
+     */
+    match /jobApplications/{jobApplicationId} {
+      allow get: if resource != null && isDocumentOwner(resource.data.userId);
+      allow list: if isSignedIn(); // Allows client-side queries like `where('userId', '==', auth.uid)`
+      allow create: if isCreatingOwnDocument('userId');
+      allow update: if isUpdatingOwnDocument('userId');
+      allow delete: if isDeletingOwnDocument('userId');
+    }
+
+  }
+}

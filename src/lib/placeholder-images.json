@@ -1,0 +1,28 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A compassionate caregiver assisting an elderly person at home.",
+      "imageUrl": "https://images.unsplash.com/photo-1765896387387-0538bc9f997e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjYXJlZ2l2ZXIlMjBlbGRlcmx5fGVufDB8fHx8MTc2Nzc2OTE4NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "caregiver elderly"
+    },
+    {
+      "id": "services-banner",
+      "description": "A bright and clean living room, suggesting a well-cared-for home environment.",
+      "imageUrl": "https://images.unsplash.com/photo-1565538810643-b5bdb714032a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjbGVhbiUyMGhvbWV8ZW58MHx8fHwxNzY3Njg3NzgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clean home"
+    },
+    {
+      "id": "careers-banner",
+      "description": "A diverse group of smiling healthcare professionals.",
+      "imageUrl": "https://images.unsplash.com/photo-1766315746079-215ff5115e9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoZWFsdGhjYXJlJTIwdGVhbXxlbnwwfHx8fDE3Njc2Nzg1NDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "healthcare team"
+    },
+    {
+      "id": "login-background",
+      "description": "A soft-focus, abstract background with gentle blue tones.",
+      "imageUrl": "https://images.unsplash.com/photo-1597773150796-e5c14ebecbf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzY3NzIyNTY3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract blue"
+    }
+  ]
+}

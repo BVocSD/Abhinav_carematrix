@@ -1,0 +1,264 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile in the system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the user."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the user."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Date of birth of the user.",
+          "format": "date-time"
+        },
+        "isServiceProvider": {
+          "type": "boolean",
+          "description": "Indicates whether the user is a service provider."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "phoneNumber"
+      ]
+    },
+    "ServiceListing": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceListing",
+      "type": "object",
+      "description": "Represents a home-care service listing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ServiceListing entity."
+        },
+        "providerId": {
+          "type": "string",
+          "description": "Reference to UserProfile (as service provider). (Relationship: UserProfile 1:N ServiceListing)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the service listing."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the service."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the service."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the service (e.g., Nursing, Personal Care)."
+        },
+        "availability": {
+          "type": "string",
+          "description": "Availability details of the service."
+        }
+      },
+      "required": [
+        "id",
+        "providerId",
+        "title",
+        "description",
+        "price",
+        "category"
+      ]
+    },
+    "Booking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Booking",
+      "type": "object",
+      "description": "Represents a booking for a service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Booking entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile (as customer). (Relationship: UserProfile 1:N Booking)"
+        },
+        "serviceListingId": {
+          "type": "string",
+          "description": "Reference to ServiceListing. (Relationship: ServiceListing 1:N Booking)"
+        },
+        "bookingDate": {
+          "type": "string",
+          "description": "Date of the booking.",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "string",
+          "description": "Duration of the booking (daily/monthly)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the booking (pending, confirmed, cancelled)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes from user regarding the booking."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "serviceListingId",
+        "bookingDate",
+        "duration",
+        "status"
+      ]
+    },
+    "JobApplication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobApplication",
+      "type": "object",
+      "description": "Represents a job application submitted by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the JobApplication entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile (as applicant). (Relationship: UserProfile 1:N JobApplication)"
+        },
+        "resumeUrl": {
+          "type": "string",
+          "description": "URL to the applicant's resume.",
+          "format": "uri"
+        },
+        "coverLetter": {
+          "type": "string",
+          "description": "Cover letter submitted with the application."
+        },
+        "skills": {
+          "type": "array",
+          "description": "List of skills possessed by the applicant.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "experience": {
+          "type": "string",
+          "description": "Details of the applicant's experience."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the job application (submitted, reviewed, interviewed, hired, rejected)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "resumeUrl",
+        "coverLetter",
+        "status"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information.  The userId is used for path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/serviceListings/{serviceListingId}",
+        "definition": {
+          "entityName": "ServiceListing",
+          "schema": {
+            "$ref": "#/backend/entities/ServiceListing"
+          },
+          "description": "Stores service listings. Includes denormalized 'providerId' for authorization independence.",
+          "params": [
+            {
+              "name": "serviceListingId",
+              "description": "The unique identifier for the service listing."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/bookings/{bookingId}",
+        "definition": {
+          "entityName": "Booking",
+          "schema": {
+            "$ref": "#/backend/entities/Booking"
+          },
+          "description": "Stores booking information.  Includes denormalized 'userId' and 'serviceListingId' for authorization independence.",
+          "params": [
+            {
+              "name": "bookingId",
+              "description": "The unique identifier for the booking."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/jobApplications/{jobApplicationId}",
+        "definition": {
+          "entityName": "JobApplication",
+          "schema": {
+            "$ref": "#/backend/entities/JobApplication"
+          },
+          "description": "Stores job applications. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "jobApplicationId",
+              "description": "The unique identifier for the job application."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs (queries are not filters), and maintain data clarity.  User profiles, service listings, bookings, and job applications are segregated into separate collections, with user-owned data nested under the /users/{userId} path to simplify security rules and ensure clear ownership.  \n\nAuthorization Independence:\n*   Service Listings: The `providerId` is stored directly in each ServiceListing document. This denormalization avoids the need for `get()` calls to the UserProfile document to check ownership, enabling atomic operations and simplifying security rules.  This ensures that listing access is independent of user attributes.\n*   Bookings:  The `userId` is stored directly in each Booking document. This supports direct queries for bookings related to a specific user without needing to access any parent document. It also includes the `serviceListingId` to facilitate querying bookings for a particular service listing.\n*   Job Applications: The `userId` is stored directly in each JobApplication document enabling direct querying for applications related to a specific user.\n\nQAPs Support:\nThe structural segregation of data into separate collections (users, service listings, bookings, job applications) allows for efficient and secure `list` operations.  Rules can be applied at the collection level, ensuring that only authorized users can access the documents within each collection. For user-owned data, the nested path structure `/users/{userId}/...` facilitates secure listing of resources owned by a specific user."
+  }
+}
